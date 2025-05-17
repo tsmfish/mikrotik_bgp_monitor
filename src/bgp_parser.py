@@ -14,7 +14,7 @@ class BGPParser:
             # Отримання BGP-сесій
             sessions = self.api.query("routing/bgp/connection")
             # Отримання BGP-маршрутів
-            routes = self.api.query("ip/route", params={"bgp": "true"})
+            routes = self.api.query("ip/route", params={"bgp": "true", "active": "true"})
 
             # Форматування даних
             bgp_data = {
@@ -22,11 +22,11 @@ class BGPParser:
                 'sessions': [
                     {
                         'name': session.get('name', ''),
-                        'remote-as': session.get('remote-as', ''),
-                        'remote-address': session.get('remote-address', ''),
-                        'state': session.get('state', ''),
-                        'uptime': session.get('uptime', ''),
-                        'prefix-count': session.get('prefix-count', 0)
+                        'as': session.get('as', ''),
+                        'router-id': session.get('router-id', ''),
+                        'local.address': session.get('local.address', ''),
+                        'remote.as': session.get('remote.as', ''),
+                        'remote.address': session.get('remote.address', ''),
                     } for session in sessions
                 ],
                 'routes': [
@@ -35,8 +35,6 @@ class BGPParser:
                         'dst-address': route.get('dst-address', ''),
                         'gateway': route.get('gateway', ''),
                         'distance': route.get('distance', ''),
-                        'bgp-as-path': route.get('bgp-as-path', ''),
-                        'bgp-origin': route.get('bgp-origin', '')
                     } for route in routes
                 ]
             }

@@ -6,3 +6,6 @@ router:
 
 storage:
   output_path: data/{0}_{1}_bgp_data.json  # Шлях для збереження даних
+
+running:
+  interval: 1         # інтервал у секнудах
