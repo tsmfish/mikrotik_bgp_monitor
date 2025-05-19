@@ -20,3 +20,21 @@ class DataStorage:
         except Exception as e:
             logging.error(f"Помилка збереження даних: {e}")
             raise
+
+
+class ChartStorage:
+    """Клас для збереження даних."""
+    def __init__(self, output_path: str, curve_name: str):
+        now = datetime.now()
+        self.output_path = output_path.format(now.strftime("%Y%m%d"), now.strftime("%H%M%S"), curve_name)
+        os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
+
+    def save_data(self, value: int):
+        """Збереження даних у CSV-файл."""
+        try:
+            with open(self.output_path, 'a') as f:
+                f.write("%s;%s".format(datetime.now(), value))
+            logging.info(f"Дані збережено у {self.output_path}")
+        except Exception as e:
+            logging.error(f"Помилка збереження даних: {e}")
+            raise

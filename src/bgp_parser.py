@@ -9,7 +9,7 @@ class BGPParser:
     def get_bgp_data(self):
         """Отримання даних про BGP-сесії та маршрути."""
         try:
-            # Отримання BGP-сесій
+            # Отримання BGP-шаблонів (процесів)
             bgp_processes = self.api.query('routing/bgp/template', params={"disabled": "false"})
             # Отримання BGP-сесій
             sessions = self.api.query("routing/bgp/connection")
@@ -36,7 +36,8 @@ class BGPParser:
                         'gateway': route.get('gateway', ''),
                         'distance': route.get('distance', ''),
                     } for route in routes
-                ]
+                ],
+                'gateways': set(route.get('gateway', '') for route in routes),
             }
             logging.info(f"Отримано {len(sessions)} сесій і {len(routes)} маршрутів")
             return bgp_data

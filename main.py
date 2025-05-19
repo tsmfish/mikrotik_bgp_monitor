@@ -5,7 +5,9 @@ import logging
 from src.logger import setup_logging
 from src.mikrotik_api import MikrotikAPI
 from src.bgp_parser import BGPParser
-from src.storage import DataStorage
+from src.storage import DataStorage, ChartStorage
+from src.utils import levenshtein_distance, clear_routes
+
 
 def load_config(config_path):
     """Завантаження конфігурації з YAML-файлу."""
@@ -47,6 +49,8 @@ async def main():
 
             # Ініціалізація збереження
             storage = DataStorage(storage_config['output_path'])
+            routes_chart = ChartStorage(storage_config['output_path'], "routes")
+            gateway_chart = ChartStorage(storage_config['output_path'], "gateways")
 
             # Збереження даних
             storage.save_data(bgp_data)
@@ -56,11 +60,23 @@ async def main():
                 if previous_data["sessions"] == bgp_data["sessions"]:
                     logging.info("Змін у сессіях не відбулось")
                 else:
-                    logging.critical("Відбулись зміни у сессіях")
+                    logging.critical("Відбулись зміни у сессіях у інтервалі часу: -")
+
+                routes_diff = levenshtein_distance(clear_routes(previous_data.get("routes", [])),
+                                clear_routes(bgp_data.get("routes", [])))
+                routes_chart.save_data(routes_diff)
                 if previous_data["routes"] == bgp_data["routes"]:
                     logging.info("Змін у маршрутах не відбулось")
                 else:
-                    logging.critical("Відбулись зміни у маршрутах")
+                    logging.critical("Відбулись зміни у маршрутах, відстань: %d",routes_diff)
+
+                gateway_diff = levenshtein_distance(clear_routes(previous_data.get("gateways", [])),
+                                clear_routes(bgp_data.get("gateways", [])))
+                gateway_chart.save_data(gateway_diff)
+                if previous_data["gateways"] == bgp_data["gateways"]:
+                    logging.info("Змін у шлюзах не відбулось")
+                else:
+                    logging.critical("Відбулись зміни у шлюзах, відстань: %d",gateway_diff)
 
             previous_data = bgp_data
 
