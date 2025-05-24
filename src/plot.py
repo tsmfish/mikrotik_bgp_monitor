@@ -2,7 +2,8 @@ import plotly.graph_objects as go
 import threading
 import time
 
-from main import load_config
+from config import load_config
+
 
 def update_plot(routes_diff_history, stop_event):
     config = load_config('config/config.yaml')

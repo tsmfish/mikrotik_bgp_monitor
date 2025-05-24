@@ -2,24 +2,14 @@ import asyncio
 import logging
 from typing import Any
 
+from config import load_config
 from src.logger import setup_logging
 from src.mikrotik_api import MikrotikAPI
 from src.bgp_parser import BGPParser
 from src.storage import DataStorage, ChartStorage
 from src.utils import levenshtein_distance, clear_routes
 from src.plot import update_plot
-import yaml
 import threading
-
-def load_config(config_path):
-    """Завантаження конфігурації з YAML-файлу."""
-    try:
-        with open(config_path, 'r') as file:
-            return yaml.safe_load(file)
-    except Exception as e:
-        logging.error(f"Помилка завантаження конфігурації: {e}")
-        raise
-
 
 async def main():
     # Налаштування логування
