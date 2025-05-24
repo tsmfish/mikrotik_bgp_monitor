@@ -1,13 +1,15 @@
 import asyncio
-
-import yaml
 import logging
+from typing import Any
+
 from src.logger import setup_logging
 from src.mikrotik_api import MikrotikAPI
 from src.bgp_parser import BGPParser
 from src.storage import DataStorage, ChartStorage
 from src.utils import levenshtein_distance, clear_routes
-
+from src.plot import update_plot
+import yaml
+import threading
 
 def load_config(config_path):
     """Завантаження конфігурації з YAML-файлу."""
@@ -17,6 +19,7 @@ def load_config(config_path):
     except Exception as e:
         logging.error(f"Помилка завантаження конфігурації: {e}")
         raise
+
 
 async def main():
     # Налаштування логування
@@ -40,8 +43,17 @@ async def main():
     # Ініціалізація парсера BGP
     parser = BGPParser(mikrotik)
 
+    # Initialize routes_diff history and stop event for plotting
+    routes_diff_history: list[tuple[tuple[int, int, int],tuple[int, int, int]]] = []
+    stop_event = threading.Event()
+
+    # Start the plot update in a separate thread
+    plot_thread = threading.Thread(target=update_plot, args=(routes_diff_history, stop_event), daemon=True)
+    plot_thread.start()
+
     try:
-        previous_data = {}
+        etalon_data: dict[str, Any] = {}
+        previous_data: dict[str, Any] = {}
         logging.info(f"Моніторінг розпочато")
         while True:
             # Отримання BGP-даних
@@ -56,6 +68,33 @@ async def main():
             storage.save_data(bgp_data)
             logging.info("Дані успішно збережено")
 
+            etalon_diff, previous_diff = (0, 0, 0), (0,0,0)
+
+            if etalon_data:
+                if etalon_data["sessions"] == bgp_data["sessions"]:
+                    pass
+                else:
+                    logging.critical("Сессії відмінні від еталону: -")
+
+                routes_diff = levenshtein_distance(clear_routes(etalon_data.get("routes", [])),
+                                                  clear_routes(bgp_data.get("routes", [])))
+                routes_chart.save_data(routes_diff)
+                etalon_diff = routes_diff
+
+                if etalon_data["routes"] == bgp_data["routes"]:
+                    pass
+                else:
+                    logging.critical("Маршрути відмінні від еталону, відстань: %d", routes_diff)
+
+                gateway_diff = levenshtein_distance(etalon_data.get("gateways", []),bgp_data.get("gateways", []))
+                gateway_chart.save_data(gateway_diff)
+                if etalon_data["gateways"] == bgp_data["gateways"]:
+                    pass
+                else:
+                    logging.critical("Відбулись зміни у шлюзах, відстань: %d", gateway_diff)
+            else:
+                etalon_data = bgp_data
+
             if previous_data:
                 if previous_data["sessions"] == bgp_data["sessions"]:
                     logging.info("Змін у сессіях не відбулось")
@@ -63,31 +102,36 @@ async def main():
                     logging.critical("Відбулись зміни у сессіях у інтервалі часу: -")
 
                 routes_diff = levenshtein_distance(clear_routes(previous_data.get("routes", [])),
-                                clear_routes(bgp_data.get("routes", [])))
+                                                  clear_routes(bgp_data.get("routes", [])))
                 routes_chart.save_data(routes_diff)
+                previous_diff = routes_diff
+
                 if previous_data["routes"] == bgp_data["routes"]:
                     logging.info("Змін у маршрутах не відбулось")
                 else:
-                    logging.critical("Відбулись зміни у маршрутах, відстань: %d",routes_diff)
+                    logging.critical("Відбулись зміни у маршрутах, відстань: %d", routes_diff)
 
-                gateway_diff = levenshtein_distance(clear_routes(previous_data.get("gateways", [])),
-                                clear_routes(bgp_data.get("gateways", [])))
+                gateway_diff = levenshtein_distance(previous_data.get("gateways", []),bgp_data.get("gateways", []))
                 gateway_chart.save_data(gateway_diff)
                 if previous_data["gateways"] == bgp_data["gateways"]:
                     logging.info("Змін у шлюзах не відбулось")
                 else:
-                    logging.critical("Відбулись зміни у шлюзах, відстань: %d",gateway_diff)
+                    logging.critical("Відбулись зміни у шлюзах, відстань: %d", gateway_diff)
 
             previous_data = bgp_data
+            routes_diff_history.append((etalon_diff, previous_diff))  # Append to history
 
             await asyncio.sleep(running_config['interval'])
 
     except KeyboardInterrupt:
         logging.info(f"Моніторінг припинено")
+        stop_event.set()  # Signal the plot thread to stop
     except Exception as e:
         logging.error(f"Помилка виконання програми: {e}")
+        stop_event.set()
     finally:
         mikrotik.close()
+        stop_event.set()
 
 if __name__ == "__main__":
     try:

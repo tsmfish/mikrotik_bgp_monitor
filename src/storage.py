@@ -29,11 +29,11 @@ class ChartStorage:
         self.output_path = output_path.format(now.strftime("%Y%m%d"), now.strftime("%H%M%S"), curve_name)
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
 
-    def save_data(self, value: int):
+    def save_data(self, values: (int, int, int)):
         """Збереження даних у CSV-файл."""
         try:
             with open(self.output_path, 'a') as f:
-                f.write("%s;%s".format(datetime.now(), value))
+                f.write("%s;%s;%s;%s".format(datetime.now(), values[0], values[1], values[2]))
             logging.info(f"Дані збережено у {self.output_path}")
         except Exception as e:
             logging.error(f"Помилка збереження даних: {e}")

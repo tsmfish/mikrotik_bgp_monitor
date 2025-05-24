@@ -9,3 +9,7 @@ storage:
 
 running:
   interval: 1         # інтервал у секнудах
+
+charts:
+  green_bound: 2
+  red_bound: 5

@@ -37,7 +37,7 @@ def is_valid_ipv4_addr(address: str) -> bool:
     return True if re.match(ipv4_re, address) else False
 
 
-def levenshtein_distance(l_value: list[Any], r_value: list[Any]) -> int:
+def levenshtein_distance(l_value: list[Any], r_value: list[Any]) -> tuple[int, int, int]:
     """
     Обчислює відстань Левенштейна між двома послідовностями.
     Args:
@@ -47,24 +47,33 @@ def levenshtein_distance(l_value: list[Any], r_value: list[Any]) -> int:
         int: Мінімальна кількість редагувань для перетворення l_value на r_value.
     """
     if l_value == r_value:
-        return 0
+        return 0, 0, 0
 
     # Ініціалізація лічильників
     rows, cols = len(l_value) + 1, len(r_value) + 1
-    dp = [[0] * cols for _ in range(rows)]
+    dp = [[(0, 0, 0)] * cols for _ in range(rows)]
+    for i in range(rows):
+        dp[i][0] = (i, 0, i)  # Видалення для перетворення l_value[:i] у порожній рядок
+    for j in range(cols):
+        dp[0][j] = (j, j, 0)  # Вставка для перетворення порожнього рядка у r_value[:j]
 
     # Заповнення матриці
     for i in range(1, rows):
         for j in range(1, cols):
-            if l_value[i-1] == r_value[j-1]:
-                dp[i][j] = dp[i-1][j-1]  # Без вартості, якщо елементи рівні
+            if l_value[i - 1] == r_value[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1]  # Без вартості, якщо елементи рівні
             else:
-                delete = dp[i-1][j] + 1
-                inert = dp[i][j-1] + 1
-                replace = dp[i-1][j-1] + 1
-                dp[i][j] = min(delete, inert, replace)
+                # Видалення: +1 до відстані, +1 до видалень
+                delete = (dp[i - 1][j][0] + 1, dp[i - 1][j][1], dp[i - 1][j][2] + 1)
+                # Вставка: +1 до відстані, +1 до вставок
+                insert = (dp[i][j - 1][0] + 1, dp[i][j - 1][1] + 1, dp[i][j - 1][2])
+                # Заміна: +1 до відстані, зберігаємо вставки/видалення з попереднього
+                replace = (dp[i - 1][j - 1][0] + 1, dp[i - 1][j - 1][1], dp[i - 1][j - 1][2])
 
-    return dp[rows-1][cols-1]
+                # Вибираємо операцію з мінімальною відстанню
+                dp[i][j] = min(delete, insert, replace, key=lambda x: x[0])
+
+    return dp[rows - 1][cols - 1]
 
 def ip_addr_to_int(ip_addr: str) -> int|None:
     """
@@ -95,5 +104,5 @@ def net_addr_to_int(net_addr: str) -> int | None:
 
 def clear_routes(routes: list[dict[str, str]]) -> list[tuple[str, str]]:
     return list(
-        (route.get("dst-address", zero_net_addr), route.get("gateway", zero_ip_addr)) for route in routes
+        (route.get("dst-address", zero_net_addr), route.get("gateway", zero_ip_addr), route.get("distance", 255)) for route in routes
     )
