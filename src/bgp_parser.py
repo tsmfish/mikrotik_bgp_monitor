@@ -37,7 +37,7 @@ class BGPParser:
                         'distance': route.get('distance', ''),
                     } for route in routes
                 ],
-                'gateways': set(route.get('gateway', '') for route in routes),
+                'gateways': list(set(route.get('gateway', '') for route in routes)),
             }
             logging.info(f"Отримано {len(sessions)} сесій і {len(routes)} маршрутів")
             return bgp_data

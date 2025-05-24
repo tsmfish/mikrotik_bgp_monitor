@@ -58,7 +58,7 @@ async def main():
             storage.save_data(bgp_data)
             logging.info("Дані успішно збережено")
 
-            etalon_diff, previous_diff = (0, 0, 0), (0,0,0)
+            etalon_diff, previous_diff = [0, 0, 0], [0,0,0]
 
             if etalon_data:
                 if etalon_data["sessions"] == bgp_data["sessions"]:
@@ -74,14 +74,14 @@ async def main():
                 if etalon_data["routes"] == bgp_data["routes"]:
                     pass
                 else:
-                    logging.critical("Маршрути відмінні від еталону, відстань: %d", routes_diff)
+                    logging.critical("Маршрути відмінні від еталону, відстань: %d", routes_diff[0])
 
-                gateway_diff = levenshtein_distance(etalon_data.get("gateways", []),bgp_data.get("gateways", []))
+                gateway_diff = levenshtein_distance(etalon_data.get("gateways", []), bgp_data.get("gateways", ()))
                 gateway_chart.save_data(gateway_diff)
                 if etalon_data["gateways"] == bgp_data["gateways"]:
                     pass
                 else:
-                    logging.critical("Відбулись зміни у шлюзах, відстань: %d", gateway_diff)
+                    logging.critical("Відбулись зміни у шлюзах, відстань: %d", gateway_diff[0])
             else:
                 etalon_data = bgp_data
 
@@ -99,14 +99,14 @@ async def main():
                 if previous_data["routes"] == bgp_data["routes"]:
                     logging.info("Змін у маршрутах не відбулось")
                 else:
-                    logging.critical("Відбулись зміни у маршрутах, відстань: %d", routes_diff)
+                    logging.critical("Відбулись зміни у маршрутах, відстань: %d", routes_diff[0])
 
                 gateway_diff = levenshtein_distance(previous_data.get("gateways", []),bgp_data.get("gateways", []))
                 gateway_chart.save_data(gateway_diff)
                 if previous_data["gateways"] == bgp_data["gateways"]:
                     logging.info("Змін у шлюзах не відбулось")
                 else:
-                    logging.critical("Відбулись зміни у шлюзах, відстань: %d", gateway_diff)
+                    logging.critical("Відбулись зміни у шлюзах, відстань: %d", gateway_diff[0])
 
             previous_data = bgp_data
             routes_diff_history.append((etalon_diff, previous_diff))  # Append to history

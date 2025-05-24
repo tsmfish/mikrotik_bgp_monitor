@@ -102,7 +102,8 @@ def net_addr_to_int(net_addr: str) -> int | None:
 
     return (ip_addr_to_int(address) << 5) + int(prefix_len)
 
-def clear_routes(routes: list[dict[str, str]]) -> list[tuple[str, str]]:
+def clear_routes(routes: list[dict[str, str]]) -> list[list[str | int]]:
     return list(
-        (route.get("dst-address", zero_net_addr), route.get("gateway", zero_ip_addr), route.get("distance", 255)) for route in routes
+        [route.get("dst-address", zero_net_addr), route.get("gateway", zero_ip_addr), route.get("distance", 255)]
+        for route in routes
     )
