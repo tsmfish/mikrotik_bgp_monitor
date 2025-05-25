@@ -104,6 +104,20 @@ def net_addr_to_int(net_addr: str) -> int | None:
 
 def clear_routes(routes: list[dict[str, str]]) -> list[list[str | int]]:
     return list(
-        [route.get("dst-address", zero_net_addr), route.get("gateway", zero_ip_addr), route.get("distance", 255)]
+        [
+            route.get("dst-address", zero_net_addr),
+            route.get("gateway", zero_ip_addr),
+            route.get("distance", 255)
+        ]
         for route in routes
+    )
+
+def clear_sessions(sessions: list[dict[str, str]]) -> list[list[str | int]]:
+    return list(
+        [
+            session.get("local.address", zero_net_addr),
+            session.get("remote.address", zero_ip_addr),
+            session.get("remote.as", 0)
+        ]
+        for session in sessions
     )

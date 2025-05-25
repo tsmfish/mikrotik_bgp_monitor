@@ -14,7 +14,7 @@ from src.logger import setup_logging
 from src.mikrotik_api import MikrotikAPI
 from src.bgp_parser import BGPParser
 from src.storage import DataStorage, ChartStorage
-from src.utils import levenshtein_distance, clear_routes
+from src.utils import levenshtein_distance, clear_routes, clear_sessions
 import threading
 
 
@@ -31,7 +31,7 @@ ax.xaxis.set_major_formatter(date_formater)
 # ax.xaxis.set_minor_locator(MinuteLocator(interval=1))
 # ax.xaxis.set_minor_locator(SecondLocator(interval=10))
 ax.set_title('Результати моніторингу маршрутної інформації')
-ax.set_xlabel('час')
+ax.set_xlabel('час, у періодах опитування')
 ax.set_ylabel('оцінка змін у одиницях відстані Левенштейна')
 ax.set_ylim(-0.5, 10)
 ax.legend()
@@ -81,18 +81,22 @@ async def bgp_observer(chart_file: str):
             storage.save_data(bgp_data)
             logging.info("Дані успішно збережено")
 
-            etalon_diff, previous_diff = [0, 0, 0], [0,0,0]
+            etalon_diff, previous_diff, gateway_diff = [0, 0, 0], [0,0,0], [0, 0, 0]
 
             if etalon_data:
-                if etalon_data["sessions"] == bgp_data["sessions"]:
-                    pass
-                else:
-                    logging.critical("Сессії відмінні від еталону: -")
+                session_diff = levenshtein_distance(clear_sessions(etalon_data.get("sessions", [])),
+                                               clear_routes(bgp_data.get("sessions", [])))
 
                 routes_diff = levenshtein_distance(clear_routes(etalon_data.get("routes", [])),
                                                   clear_routes(bgp_data.get("routes", [])))
-                # routes_chart.save_data(routes_diff)
+                gateway_diff = levenshtein_distance(etalon_data.get("gateways", []), bgp_data.get("etalon_gateways", []))
+
                 etalon_diff = routes_diff
+
+                if session_diff[0] > 0:
+                    pass
+                else:
+                    logging.critical("Сессії відмінні від еталону: -")
 
                 if etalon_data["routes"] == bgp_data["routes"]:
                     pass
@@ -108,10 +112,7 @@ async def bgp_observer(chart_file: str):
                     elif minor_alert < routes_diff[2]:
                         logging.critical("Відмова обладнання, кількість: %d", routes_diff[2])
 
-
-                gateway_diff = levenshtein_distance(etalon_data.get("gateways", []), bgp_data.get("etalon_gateways", []))
-
-                if etalon_data["gateways"] == bgp_data["gateways"]:
+                if gateway_diff[0] > 0:
                     pass
                 else:
                     logging.critical("Відбулись зміни у шлюзах, відстань: %d", gateway_diff[0])
