@@ -104,9 +104,9 @@ async def bgp_observer(chart_file: str):
                         logging.critical("Маршрути відмінні від еталону, відстань: %d", routes_diff[0])
 
                     if 0 < routes_diff[2] < minor_alert:
-                        logging.critical("Часткова відмова, кількість: %d", routes_diff[0])
+                        logging.critical("Часткова відмова, кількість: %d", routes_diff[2])
                     elif minor_alert < routes_diff[2]:
-                        logging.critical("Відмова обладнання, кількість: %d", routes_diff[0])
+                        logging.critical("Відмова обладнання, кількість: %d", routes_diff[2])
 
 
                 gateway_diff = levenshtein_distance(etalon_data.get("gateways", []), bgp_data.get("etalon_gateways", []))
