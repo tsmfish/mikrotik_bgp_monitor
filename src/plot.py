@@ -1,89 +1,46 @@
-import plotly.graph_objects as go
-import threading
-import time
+import matplotlib.pyplot as plt
 
-from config import load_config
+# Colors
+WHITE = "#ffffff"
+RED = "#ff0000"
+BLUE = "#0000ff"
+GREEN = "#00ff00"
+BLACK = "#000000"
+YELLOW = "#ffff00"
+TRANSPARENT = "#00000000"
+NAVY_BLUE = "#000080"
+TELECOM_GRAY = "#7e8282"
 
 
-def update_plot(routes_diff_history, stop_event):
-    config = load_config('config/config.yaml')
-    charts_config = config['charts']
+class LineChart:
+    def __init__(self):
+        plt.ion()  # Enable interactive mode
 
-    """Update the Plotly chart with routes_diff data."""
-    fig = go.Figure()
+        self.fig, self.ax = plt.subplots()
+        self.x1_data, self.x2_data, self.y_data = [], [], []
+        self.line1, self.line2, = self.ax.plot(self.x1_data, self.x2_data, self.y_data)
 
-    # Initialize the plot with empty data
-    items_count = len(routes_diff_history)
-    times = list(range(1, items_count + 1))
-    green_bound = charts_config['green_bound']
-    red_bound = charts_config['red_bound']
-    routes_diff_etalon_chart = [value[0][0] for value in routes_diff_history]
-    routes_diff_history_chart = [value[0][0] for value in routes_diff_history]
+        # self.line1.set_animated(True)
+        # self.line1.set_color(NAVY_BLUE)
+        # self.line2.set_animated(True)
+        # self.line2.set_color(TELECOM_GRAY)
 
-    # Add routes_diff trace
-    fig.add_trace(go.Scatter(
-        x=times,
-        y=routes_diff_etalon_chart,
-        mode='lines+markers',
-        name='Різниця із еталонним значенням маршрутів',
-        line=dict(color='#1e90ff')
-    ))
+        self.ax.set_xlabel("час")
+        self.ax.set_ylabel("відстань Левенштайна")
+        self.ax.set_title("редакційна відстань зміни маршрутів")
 
-    # Add routes_diff trace
-    fig.add_trace(go.Scatter(
-        x=times,
-        y=routes_diff_history_chart,
-        mode='lines+markers',
-        name='Зміна таблиці маршрутів у часі',
-        line=dict(color='#1e90ff')
-    ))
+    def update_plot(self, new_x1: int, new_x2: int):
+        self.x1_data.append(new_x1)
+        self.x2_data.append(new_x2)
+        self.y_data.append(self.y_data[-1] if self.y_data else 0)
 
-    # Add green bound trace
-    fig.add_trace(go.Scatter(
-        x=times,
-        y=[green_bound] * items_count,
-        mode='lines',
-        name='одинична відмова',
-        line=dict(color='#00ff00', dash='dash')
-    ))
+        self.line1.set_xdata(self.x1_data)
+        self.line2.set_xdata(self.x2_data)
+        self.line1.set_ydata(self.y_data)
+        self.line2.set_ydata(self.y_data)
 
-    # Add red bound trace
-    fig.add_trace(go.Scatter(
-        x=times,
-        y=[red_bound] * items_count,
-        mode='lines',
-        name='відмова обладнання',
-        line=dict(color='#ff0000', dash='dash')
-    ))
+        self.ax.relim()
+        self.ax.autoscale_view()
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
 
-    # Set layout
-    fig.update_layout(
-        title='зміна маршрута по Левенштайну',
-        xaxis_title='час',
-        yaxis_title='відстань Левенштайна',
-        yaxis=dict(range=[0, max(routes_diff_history_chart + [100]) + 10]),
-        showlegend=True
-    )
-
-    # Show the initial plot in a separate thread to avoid blocking asyncio
-    def show_plot():
-        fig.show()
-
-    threading.Thread(target=show_plot, daemon=True).start()
-
-    # Keep updating the plot until stop_event is set
-    while not stop_event.is_set():
-        times = list(range(1, len(routes_diff_history_chart) + 1))
-
-        # Update data
-        fig.data[0].x = times
-        fig.data[0].y = routes_diff_history_chart
-        fig.data[1].x = times
-        fig.data[1].y = [green_bound]
-        fig.data[2].x = times
-        fig.data[2].y = [red_bound]
-
-        # Update y-axis range
-        fig.update_layout(yaxis=dict(range=[0, max(routes_diff_history_chart + [100]) + 10]))
-
-        time.sleep(5)  # Update every 5 seconds

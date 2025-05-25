@@ -6,10 +6,12 @@ from config import load_config
 from src.logger import setup_logging
 from src.mikrotik_api import MikrotikAPI
 from src.bgp_parser import BGPParser
+from src.plot import LineChart
 from src.storage import DataStorage, ChartStorage
 from src.utils import levenshtein_distance, clear_routes
-from src.plot import update_plot
 import threading
+
+routes_diff_history: list[tuple[tuple[int, int, int],tuple[int, int, int]]] = []
 
 async def main():
     # Налаштування логування
@@ -21,6 +23,10 @@ async def main():
     router_config = config['router']
     storage_config = config['storage']
     running_config = config['running']
+    charts_config = config['charts']
+
+    #
+    line_chart = LineChart()
 
     # Ініціалізація API
     mikrotik = MikrotikAPI(
@@ -34,12 +40,8 @@ async def main():
     parser = BGPParser(mikrotik)
 
     # Initialize routes_diff history and stop event for plotting
-    routes_diff_history: list[tuple[tuple[int, int, int],tuple[int, int, int]]] = []
-    stop_event = threading.Event()
 
-    # Start the plot update in a separate thread
-    plot_thread = threading.Thread(target=update_plot, args=(routes_diff_history, stop_event), daemon=True)
-    plot_thread.start()
+    stop_event = threading.Event()
 
     try:
         etalon_data: dict[str, Any] = {}
@@ -68,7 +70,7 @@ async def main():
 
                 routes_diff = levenshtein_distance(clear_routes(etalon_data.get("routes", [])),
                                                   clear_routes(bgp_data.get("routes", [])))
-                routes_chart.save_data(routes_diff)
+                # routes_chart.save_data(routes_diff)
                 etalon_diff = routes_diff
 
                 if etalon_data["routes"] == bgp_data["routes"]:
@@ -76,14 +78,15 @@ async def main():
                 else:
                     logging.critical("Маршрути відмінні від еталону, відстань: %d", routes_diff[0])
 
-                gateway_diff = levenshtein_distance(etalon_data.get("gateways", []), bgp_data.get("gateways", ()))
-                gateway_chart.save_data(gateway_diff)
+                gateway_diff = levenshtein_distance(etalon_data.get("gateways", []), bgp_data.get("etalon_gateways", []))
+                # gateway_chart.save_data(gateway_diff)
                 if etalon_data["gateways"] == bgp_data["gateways"]:
                     pass
                 else:
                     logging.critical("Відбулись зміни у шлюзах, відстань: %d", gateway_diff[0])
             else:
                 etalon_data = bgp_data
+
 
             if previous_data:
                 if previous_data["sessions"] == bgp_data["sessions"]:
@@ -93,7 +96,7 @@ async def main():
 
                 routes_diff = levenshtein_distance(clear_routes(previous_data.get("routes", [])),
                                                   clear_routes(bgp_data.get("routes", [])))
-                routes_chart.save_data(routes_diff)
+                # routes_chart.save_data(routes_diff)
                 previous_diff = routes_diff
 
                 if previous_data["routes"] == bgp_data["routes"]:
@@ -102,7 +105,7 @@ async def main():
                     logging.critical("Відбулись зміни у маршрутах, відстань: %d", routes_diff[0])
 
                 gateway_diff = levenshtein_distance(previous_data.get("gateways", []),bgp_data.get("gateways", []))
-                gateway_chart.save_data(gateway_diff)
+                # gateway_chart.save_data(gateway_diff)
                 if previous_data["gateways"] == bgp_data["gateways"]:
                     logging.info("Змін у шлюзах не відбулось")
                 else:
@@ -110,6 +113,7 @@ async def main():
 
             previous_data = bgp_data
             routes_diff_history.append((etalon_diff, previous_diff))  # Append to history
+            line_chart.update_plot(etalon_diff[0], previous_diff[0])
 
             await asyncio.sleep(running_config['interval'])
 

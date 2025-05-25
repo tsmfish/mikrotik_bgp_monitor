@@ -1,11 +1,11 @@
 router:
-  host: 192.168.13.1  # IP-адреса MikroTik RB951
+  host: 192.168.14.1  # IP-адреса MikroTik RB951
   username: admin     # Логін
   password: ""        # Пароль
   port: 80            # Порт API (за замовчуванням 8728)
 
 storage:
-  output_path: data/{0}_{1}_bgp_data.json  # Шлях для збереження даних
+  output_path: data/{0}_{1}_{2}_bgp_data.json  # Шлях для збереження даних
 
 running:
   interval: 1         # інтервал у секнудах
