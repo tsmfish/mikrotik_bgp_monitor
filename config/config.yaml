@@ -14,3 +14,7 @@ running:
 
 charts:
   max_records: 30
+
+analyze:
+  minor-alert-level: 4
+  major-alert-level: 10

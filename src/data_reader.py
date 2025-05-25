@@ -4,8 +4,6 @@ from datetime import datetime
 
 from config import CHART_TIME_FORMAT
 
-
-# --- DataReader class (as provided previously) ---
 class DataReader(threading.Thread):
     def __init__(self, filename, interval=5):
         super().__init__()
@@ -16,7 +14,7 @@ class DataReader(threading.Thread):
         self.lock = threading.Lock()
 
     def run(self):
-        print(f"Data reader thread started for file: {self.filename}")
+        print(f"Розпочато процес читання даних для файлу: {self.filename}")
         last_read_byte = 0
         while self.running:
             try:
@@ -45,20 +43,20 @@ class DataReader(threading.Thread):
                                 self.data_points['values2'].append(val2)
 
                         except (ValueError, IndexError) as e:
-                            print(f"Error parsing line: '{line}' - {e}")
+                            print(f"Помилка розбору рядка: '{line}' - {e}")
                     else:
-                        print(f"Skipping malformed line: '{line}'")
+                        print(f"Пропуск неправильно сформованої лінії: '{line}'")
 
             except FileNotFoundError:
-                print(f"File not found: {self.filename}. Waiting...")
+                print(f"Не знайдено файл: {self.filename}. Очікуємо...")
             except Exception as e:
-                print(f"An error occurred in data reader thread: {e}")
+                print(f"У потоці зчитування даних сталася помилка: {e}")
 
             time.sleep(self.interval)
 
     def stop(self):
         self.running = False
-        print("Data reader thread signaled to stop.")
+        print("Потік зчитувача даних сигналізував про зупинку.")
 
     def get_data(self):
         with self.lock:

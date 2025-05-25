@@ -48,6 +48,9 @@ async def bgp_observer(chart_file: str):
     router_config = config['router']
     storage_config = config['storage']
     running_config = config['running']
+    analyze_config = config['analyze']
+    minor_alert = analyze_config['minor-alert-level']
+    major_alert = analyze_config['major-alert-level']
 
     # Ініціалізація API
     mikrotik = MikrotikAPI(
@@ -94,7 +97,17 @@ async def bgp_observer(chart_file: str):
                 if etalon_data["routes"] == bgp_data["routes"]:
                     pass
                 else:
-                    logging.critical("Маршрути відмінні від еталону, відстань: %d", routes_diff[0])
+                    if routes_diff[1] > 0:
+                        logging.critical("Виявлено нові маршрути, кількість доданих маршрутів: %d", routes_diff[1])
+
+                    if routes_diff[0] > routes_diff[1]:
+                        logging.critical("Маршрути відмінні від еталону, відстань: %d", routes_diff[0])
+
+                    if 0 < routes_diff[2] < minor_alert:
+                        logging.critical("Часткова відмова, кількість: %d", routes_diff[0])
+                    elif minor_alert < routes_diff[2]:
+                        logging.critical("Відмова обладнання, кількість: %d", routes_diff[0])
+
 
                 gateway_diff = levenshtein_distance(etalon_data.get("gateways", []), bgp_data.get("etalon_gateways", []))
 
@@ -104,7 +117,6 @@ async def bgp_observer(chart_file: str):
                     logging.critical("Відбулись зміни у шлюзах, відстань: %d", gateway_diff[0])
             else:
                 etalon_data = bgp_data
-
 
             if previous_data:
                 if previous_data["sessions"] == bgp_data["sessions"]:
@@ -118,7 +130,10 @@ async def bgp_observer(chart_file: str):
                 previous_diff = routes_diff
 
                 if previous_data["routes"] == bgp_data["routes"]:
-                    logging.info("Змін у маршрутах не відбулось")
+                    if etalon_diff[0] == 0:
+                        logging.info("Таблиця маршрутів відновилась до еталонно")
+                    else:
+                        logging.info("Змін у маршрутах не відбулось")
                 else:
                     logging.critical("Відбулись зміни у маршрутах, відстань: %d", routes_diff[0])
 
@@ -202,7 +217,7 @@ if __name__ == "__main__":
     ani = animation.FuncAnimation(fig, update_plot, interval=config['running']['interval'] * 1000, blit=True)
 
     # 3. Show the plot (this will block the main thread until the window is closed)
-    print("Starting plot. Close the plot window to stop the application.")
+    print("Початок побудови графіка. Закрийте вікно побудови графіка, щоб зупинити програму.")
 
     try:
         plt.show()
