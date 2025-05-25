@@ -32,7 +32,8 @@ class DataReader(threading.Thread):
                     if len(parts) >= 3:
                         try:
                             timestamp_str = parts[0].strip()
-                            dt_object = datetime.strptime(timestamp_str, CHART_TIME_FORMAT)
+                            # dt_object = datetime.strptime(timestamp_str, CHART_TIME_FORMAT)
+                            dt_object = timestamp_str
 
                             val1 = int(parts[1].strip())
                             val2 = int(parts[2].strip())

@@ -25,8 +25,8 @@ xdata = [datetime.now()]
 line1, = ax.plot(xdata, [0], 'y.-', label='різниця із еталоном', linewidth=2)
 line2, = ax.plot(xdata, [0], 'ro', label='диференційна різниці')
 
-date_formater = DateFormatter(CHART_TIME_FORMAT)
-ax.xaxis.set_major_formatter(date_formater)
+# date_formater = DateFormatter(CHART_TIME_FORMAT)
+# ax.xaxis.set_major_formatter(date_formater)
 # ax.xaxis.set_major_locator(HourLocator(interval=1))
 # ax.xaxis.set_minor_locator(MinuteLocator(interval=1))
 # ax.xaxis.set_minor_locator(SecondLocator(interval=10))
