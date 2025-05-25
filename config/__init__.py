@@ -10,3 +10,5 @@ def load_config(config_path):
     except Exception as e:
         logging.error(f"Помилка завантаження конфігурації: {e}")
         raise
+
+CHART_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"

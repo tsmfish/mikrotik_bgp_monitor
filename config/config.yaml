@@ -9,8 +9,8 @@ storage:
   chart_path: data/{0}_{1}_line_chart.csv      #
 
 running:
-  interval: 1         # інтервал у секнудах
+  interval: 1         # інтервал у секундах
+  duration: 300.0     # час спостереження
 
 charts:
-  green_bound: 2
-  red_bound: 5
+  max_records: 30
