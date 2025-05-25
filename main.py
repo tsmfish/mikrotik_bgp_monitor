@@ -13,7 +13,7 @@ import threading
 
 routes_diff_history: list[tuple[tuple[int, int, int],tuple[int, int, int]]] = []
 
-async def main():
+async def bgp_observer():
     # Налаштування логування
     setup_logging()
     logging.info("Запуск програми для моніторингу BGP на MikroTik")
@@ -23,10 +23,6 @@ async def main():
     router_config = config['router']
     storage_config = config['storage']
     running_config = config['running']
-    charts_config = config['charts']
-
-    #
-    line_chart = LineChart()
 
     # Ініціалізація API
     mikrotik = MikrotikAPI(
@@ -47,14 +43,14 @@ async def main():
         etalon_data: dict[str, Any] = {}
         previous_data: dict[str, Any] = {}
         logging.info(f"Моніторінг розпочато")
+        line_chart = ChartStorage(storage_config['chart_path'])
+
         while True:
             # Отримання BGP-даних
             bgp_data = parser.get_bgp_data()
 
             # Ініціалізація збереження
             storage = DataStorage(storage_config['output_path'])
-            routes_chart = ChartStorage(storage_config['output_path'], "routes")
-            gateway_chart = ChartStorage(storage_config['output_path'], "gateways")
 
             # Збереження даних
             storage.save_data(bgp_data)
@@ -79,7 +75,7 @@ async def main():
                     logging.critical("Маршрути відмінні від еталону, відстань: %d", routes_diff[0])
 
                 gateway_diff = levenshtein_distance(etalon_data.get("gateways", []), bgp_data.get("etalon_gateways", []))
-                # gateway_chart.save_data(gateway_diff)
+
                 if etalon_data["gateways"] == bgp_data["gateways"]:
                     pass
                 else:
@@ -96,7 +92,7 @@ async def main():
 
                 routes_diff = levenshtein_distance(clear_routes(previous_data.get("routes", [])),
                                                   clear_routes(bgp_data.get("routes", [])))
-                # routes_chart.save_data(routes_diff)
+
                 previous_diff = routes_diff
 
                 if previous_data["routes"] == bgp_data["routes"]:
@@ -112,8 +108,7 @@ async def main():
                     logging.critical("Відбулись зміни у шлюзах, відстань: %d", gateway_diff[0])
 
             previous_data = bgp_data
-            routes_diff_history.append((etalon_diff, previous_diff))  # Append to history
-            line_chart.update_plot(etalon_diff[0], previous_diff[0])
+            line_chart.save_data(etalon_diff[0], previous_diff[0])
 
             await asyncio.sleep(running_config['interval'])
 
@@ -129,6 +124,6 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        asyncio.run(bgp_observer())
     except KeyboardInterrupt:
         logging.info(f"Моніторінг припинено")
