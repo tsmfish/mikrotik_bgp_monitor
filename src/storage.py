@@ -30,7 +30,7 @@ class ChartStorage:
         self.output_path = output_path
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
 
-    def save_data(self, first: int, second: int):
+    def save_data(self, first: float, second: float):
         """Збереження даних у CSV-файл."""
         try:
             with open(self.output_path, 'a') as f:

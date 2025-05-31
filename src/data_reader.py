@@ -1,8 +1,5 @@
 import threading
 import time
-from datetime import datetime
-
-from config import CHART_TIME_FORMAT
 
 class DataReader(threading.Thread):
     def __init__(self, filename, interval=5):
@@ -35,8 +32,8 @@ class DataReader(threading.Thread):
                             # dt_object = datetime.strptime(timestamp_str, CHART_TIME_FORMAT)
                             dt_object = timestamp_str
 
-                            val1 = int(parts[1].strip())
-                            val2 = int(parts[2].strip())
+                            val1 = float(parts[1].strip())
+                            val2 = float(parts[2].strip())
 
                             with self.lock:
                                 self.data_points['timestamps'].append(dt_object)
