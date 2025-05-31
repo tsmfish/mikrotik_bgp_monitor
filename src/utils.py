@@ -123,4 +123,10 @@ def clear_sessions(sessions: list[dict[str, str]]) -> list[list[str | int]]:
     )
 
 def normalize(origin: (int, int, int), base: int) -> (float, float, float):
+    """
+    Нормалізація значень відповідно до кількості записів, допускає передачу 0
+    :param origin: кортеж оригінальних значень
+    :param base: кількість значень
+    :return: повертає нормалізований кортеж
+    """
     return tuple(float(value)/max(base, 1) for value in origin)

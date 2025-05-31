@@ -3,7 +3,7 @@ import requests
 from requests.exceptions import HTTPError, ConnectionError, RequestException
 
 class MikrotikAPI:
-    """Class for interacting with MikroTik via REST API."""
+    """Клас для взаємодії з MikroTik через REST API."""
     def __init__(self,
                  host: str, username: str, password: str,
                  port: int=443,
@@ -19,25 +19,25 @@ class MikrotikAPI:
         self.headers = {"Content-Type": "application/json"}
 
     def connect(self) -> None:
-        """Establish a connection to the MikroTik router."""
+        """Встановити з'єднання з маршрутизатором MikroTik."""
         try:
-            logging.info(f"Attempting to connect to MikroTik '{self.username}'@{self.host}:{self.port}")
+            logging.info(f"Спроба підключення до MikroTik '{self.username}'@{self.host}:{self.port}")
             self.session = requests.Session()
             self.session.auth = (self.username, self.password)
             self.session.headers.update(self.headers)
             self.session.verify = self.verify_ssl
 
-            # Test connection by querying system identity
+            # Тестування з'єднання через запит системної ідентичності
             response = self.session.get(f"{self.base_url}/system/identity")
             response.raise_for_status()
-            logging.info(f"Connected to MikroTik {self.host}: {response.json()['name']}")
+            logging.info(f"Підключено до MikroTik {self.host}: {response.json()['name']}")
         except (TypeError, HTTPError, ConnectionError, RequestException) as e:
-            logging.error(f"Failed to connect to MikroTik: {e}")
+            logging.error(f"Не вдалося підключитися до MikroTik: {e}")
             self.session = None
             raise
 
     def query(self, path: str, params=None) -> list[any]:
-        """Execute a query to the REST API."""
+        """Виконати запит до REST API."""
         if not self.session:
             self.connect()
 
@@ -46,23 +46,23 @@ class MikrotikAPI:
             response = self.session.get(url, params=params or {})
             response.raise_for_status()
             data = response.json()
-            # Normalize response: return list of items (mimic librouteros behavior)
+            # Нормалізація відповіді: повернення списку елементів (імітація поведінки librouteros)
             if isinstance(data, dict) and "data" in data:
                 return data["data"]
             return data if isinstance(data, list) else [data]
         except (HTTPError, ConnectionError, RequestException) as e:
-            logging.error(f"Query failed for {path}: {e}")
+            logging.error(f"Запит для {path} не виконано: {e}")
             raise
 
     def close(self) -> None:
-        """Close the connection."""
+        """Закрити з'єднання."""
         if self.session:
             try:
-                # Optionally, log out (REST API sessions are stateless, but good practice)
+                # Опціонально, вихід із системи (сесії REST API є безстановими, але це хороша практика)
                 self.session.get(f"{self.base_url}/system/logout")
                 self.session.close()
-                logging.info("Connection to MikroTik closed")
+                logging.info("З'єднання з MikroTik закрито")
             except RequestException as e:
-                logging.error(f"Error during logout: {e}")
+                logging.error(f"Помилка під час виходу: {e}")
             finally:
                 self.session = None
